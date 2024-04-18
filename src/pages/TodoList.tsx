@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import axios from 'axios'
 import { TodoItem } from '../components/TodoItem'
 import { TodoItemType } from '../App'
-import { useQuery } from 'react-query'
+import { useMutation, useQuery } from 'react-query'
 
 async function getTodos() {
   const response = await axios.get<TodoItemType[]>(
@@ -12,22 +12,33 @@ async function getTodos() {
   return response.data
 }
 
+async function createNewTodoItem(newTodoText: string) {
+  const response = await axios.post(
+    'https://one-list-api.herokuapp.com/items?access_token=cohort22',
+    {
+      item: { text: newTodoText },
+    }
+  )
+  return response
+}
+
 export function TodoList() {
-  const { data: todoItems = [], refetch } = useQuery('todos', getTodos)
+  const { data: todoItems = [], refetch: refetchTodos } = useQuery(
+    'todos',
+    () => getTodos()
+  )
+
+  const todoItemMutation = useMutation(
+    (newTodoText: string) => createNewTodoItem(newTodoText),
+    {
+      onSuccess: function () {
+        refetchTodos()
+        setNewTodoText('')
+      },
+    }
+  )
 
   const [newTodoText, setNewTodoText] = useState('')
-
-  async function handleCreateNewTodoItem() {
-    const response = await axios.post(
-      'https://one-list-api.herokuapp.com/items?access_token=cohort22',
-      {
-        item: { text: newTodoText },
-      }
-    )
-    if (response.status === 201) {
-      refetch()
-    }
-  }
 
   return (
     <>
@@ -37,7 +48,7 @@ export function TodoList() {
             <TodoItem
               key={todoItem.id}
               todoItem={todoItem}
-              reloadItems={() => refetch()}
+              reloadItems={() => refetchTodos()}
             />
           )
         })}
@@ -45,7 +56,7 @@ export function TodoList() {
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          handleCreateNewTodoItem()
+          todoItemMutation.mutate(newTodoText)
         }}
       >
         <input

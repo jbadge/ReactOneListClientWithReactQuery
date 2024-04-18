@@ -1,16 +1,24 @@
 import React from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams } from 'react-router-dom'
 import { TodoItemType } from '../App'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
-import { useQuery } from 'react-query'
+import { useMutation, useQuery } from 'react-query'
 
-async function getOneTodo(id: string) {
+async function getOneTodo(id: string | undefined) {
   const response = await axios.get<TodoItemType>(
     `https://one-list-api.herokuapp.com/items/${id}?access_token=cohort22`
   )
 
   return response.data
+}
+
+async function deleteOneTodo(id: string | undefined) {
+  const response = await axios.delete(
+    `https://one-list-api.herokuapp.com/items/${id}?access_token=cohort22`
+  )
+
+  return response
 }
 
 const EmptyTodoItem: TodoItemType = {
@@ -26,18 +34,14 @@ export function TodoItemPage() {
   const navigate = useNavigate()
   const { data: todoItem = EmptyTodoItem, isLoading } = useQuery(
     ['todo', params.id],
-    () => getOneTodo(params.id!)
+    () => getOneTodo(params.id)
   )
 
-  async function deleteTodoItem() {
-    const response = await axios.delete(
-      `https://one-list-api.herokuapp.com/items/${params.id}?access_token=cohort22`
-    )
-
-    if (response.status === 204) {
+  const deleteMutation = useMutation((id: string) => deleteOneTodo(id), {
+    onSuccess: function () {
       navigate('/')
-    }
-  }
+    },
+  })
 
   if (isLoading) {
     return null
@@ -52,7 +56,13 @@ export function TodoItemPage() {
       <p className={todoItem.complete ? 'completed' : ''}>{todoItem.text}</p>
       <p>Created: {todoItem.created_at}</p>
       <p>Updated: {todoItem.updated_at}</p>
-      <button onClick={deleteTodoItem}>Delete</button>
+      <button
+        onClick={function () {
+          deleteMutation.mutate(params.id!)
+        }}
+      >
+        Delete
+      </button>
     </div>
   )
 }
