@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { TodoItem } from '../components/TodoItem'
 import { useMutation, useQuery } from 'react-query'
 import { createNewTodoItem, getTodos } from '../api'
 
 export function TodoList() {
-  const [newTodoText, setNewTodoText] = useState('')
+  const [newTodoText, setNewTodoText] = React.useState('')
 
   const { data: todoItems = [], refetch: refetchTodos } = useQuery(
     'todos',
